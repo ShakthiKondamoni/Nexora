@@ -1,0 +1,197 @@
+const $id = (id) => document.getElementById(id),
+  cookie = (n) => {
+    const x = document.cookie.match(new RegExp("(?:^|; )" + n + "=([^;]+)"));
+    return x ? decodeURIComponent(x[1]) : "";
+  };
+const alertBox = $id("alert");
+function showAlert(text, kind = "") {
+  alertBox.textContent = text;
+  alertBox.className = "alert " + kind;
+  alertBox.hidden = !text;
+}
+async function send(path, data, method = "POST") {
+  const headers = {
+    "Content-Type": "application/json",
+    "X-CSRF-Token": cookie("studio_csrf"),
+  };
+  const r = await fetch(path, {
+    method,
+    headers,
+    credentials: "same-origin",
+    body: data === undefined ? undefined : JSON.stringify(data),
+  });
+  let d = {};
+  try {
+    d = await r.json();
+  } catch {}
+  if (!r.ok) {
+    const e = new Error(d.error || d.detail || "Request failed.");
+    e.status = r.status;
+    throw e;
+  }
+  return d;
+}
+function busy(form, on) {
+  form.querySelectorAll("button").forEach((b) => {
+    b.disabled = on;
+    if (on) b.dataset.old = b.textContent;
+    else if (b.dataset.old) {
+      b.textContent = b.dataset.old;
+      delete b.dataset.old;
+    }
+  });
+}
+document.querySelectorAll("[data-toggle]").forEach((b) =>
+  b.addEventListener("click", () => {
+    const i = $id(b.dataset.toggle),
+      show = i.type === "password";
+    i.type = show ? "text" : "password";
+    b.textContent = show ? "Hide" : "Show";
+    b.setAttribute("aria-label", show ? "Hide password" : "Show password");
+  }),
+);
+(async () => {
+  try {
+    const s = await send("/api/auth/status", undefined, "GET");
+    if (s.authenticated) {
+      location.replace("/setup");
+      return;
+    }
+    $id("google").hidden = !s.google.ready;
+    $id("divider").hidden = !s.google.ready;
+    $id("forgot-link").hidden = !s.email.ready;
+    $id("forgot-link").title = s.email.ready
+      ? ""
+      : "Email recovery is not configured.";
+    if (s.owner_exists) {
+      $id("login").hidden = false;
+      $id("title").textContent = "Welcome back";
+      $id("subtitle").textContent = "Sign in to continue to your local studio.";
+      if (!s.email.ready) {
+        $id("local-note").textContent =
+          "Password recovery is not configured. Ask the local administrator to set up email, or use a linked sign-in provider.";
+      }
+    } else {
+      $id("register").hidden = false;
+      $id("title").textContent = "Create your local account";
+      $id("subtitle").textContent =
+        "Optional sign-in protects this single-user local installation.";
+      $id("local-note").textContent =
+        "You can keep using local Ollama without Google or GitHub. This account is for one local owner; no email verification is sent.";
+    }
+    const params = new URLSearchParams(location.search);
+    if (params.get("expired"))
+      showAlert("Your session expired. Please sign in again.");
+    if (params.get("error") === "google_denied")
+      showAlert("Google sign-in was cancelled. You can try again.");
+    if (params.get("error") === "google_state")
+      showAlert(
+        "Google sign-in expired or could not be verified. Start again.",
+        "error",
+      );
+    if (params.get("error") === "google_failed")
+      showAlert(
+        "Google sign-in could not be completed. Check provider setup and try again.",
+        "error",
+      );
+    const token = params.get("reset");
+    if (token) {
+      $id("login").hidden = true;
+      $id("register").hidden = true;
+      $id("google").hidden = true;
+      $id("divider").hidden = true;
+      $id("forgot-link").hidden = true;
+      $id("reset").hidden = false;
+      $id("title").textContent = "Choose a new password";
+      $id("subtitle").textContent =
+        "Reset links expire after one hour and can only be used once.";
+      $id("reset").dataset.token = token;
+    }
+  } catch (e) {
+    showAlert(
+      "Could not load sign-in status. Refresh the page or restart Nexora.",
+      "error",
+    );
+  }
+})();
+$id("register").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const f = e.currentTarget;
+  busy(f, true);
+  showAlert("Creating your local account…");
+  try {
+    await send("/api/auth/register", {
+      email: $id("reg-email").value,
+      password: $id("reg-pass").value,
+    });
+    showAlert("Account created. Opening Nexora…", "success");
+    location.assign("/");
+  } catch (x) {
+    showAlert(x.message, "error");
+    busy(f, false);
+  }
+});
+$id("login").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const f = e.currentTarget;
+  busy(f, true);
+  showAlert("Signing in…");
+  try {
+    await send("/api/auth/login", {
+      email: $id("login-email").value,
+      password: $id("login-pass").value,
+    });
+    showAlert("Signed in. Opening Nexora…", "success");
+    location.assign("/");
+  } catch (x) {
+    showAlert(x.message, "error");
+    busy(f, false);
+  }
+});
+$id("google").addEventListener("click", () => {
+  showAlert("Opening Google authorization…");
+  location.assign("/api/auth/google/start");
+});
+$id("forgot-link").addEventListener("click", () => {
+  $id("login").hidden = true;
+  $id("register").hidden = true;
+  $id("forgot").hidden = false;
+  $id("title").textContent = "Reset your password";
+  $id("subtitle").textContent =
+    "We’ll send a one-time link if email recovery is configured.";
+  showAlert("");
+});
+document
+  .querySelector(".back")
+  .addEventListener("click", () => location.assign("/signin"));
+$id("forgot").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const f = e.currentTarget;
+  busy(f, true);
+  try {
+    const d = await send("/api/auth/password/forgot", {
+      email: $id("forgot-email").value,
+    });
+    showAlert(d.message, "success");
+    busy(f, false);
+  } catch (x) {
+    showAlert(x.message, "error");
+    busy(f, false);
+  }
+});
+$id("reset").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const f = e.currentTarget;
+  busy(f, true);
+  try {
+    await send("/api/auth/password/reset", {
+      token: f.dataset.token,
+      password: $id("reset-pass").value,
+    });
+    showAlert("Password updated. Opening Nexora…", "success");
+    location.assign("/");
+  } catch (x) {
+    showAlert(x.message, "error");
+    busy(f, false);
+  }
+});

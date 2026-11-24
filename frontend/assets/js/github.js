@@ -1,0 +1,342 @@
+let GH = {
+  repos: [],
+  page: 1,
+  repo: null,
+  branch: "",
+  tree: [],
+  paths: new Set(),
+  projects: [],
+  project: null,
+  files: [],
+  conversation: "",
+  messages: [],
+  timer: null,
+};
+const ghe = (x) => esc(String(x ?? ""));
+async function githubView() {
+  if (GH.timer) clearInterval(GH.timer);
+  $("#main").innerHTML =
+    '<div class="pg"><h1>GitHub Projects</h1><p class="mu">Read-only repository import, local code indexing, and local Ollama chat.</p><div id="ghbody">Loading…</div></div>';
+  let st = await api("/api/github/status");
+  if (!st.connected) {
+    const reason = new URLSearchParams(location.search).get("github_error");
+    const notice =
+      reason === "authorization_denied"
+        ? "GitHub authorization was denied. You can try again when ready."
+        : reason === "session_expired"
+          ? "Your Nexora sign-in expired while connecting. Sign in and reconnect."
+          : reason === "authorization_failed"
+            ? "GitHub could not complete authorization. Check the App setup and try again."
+            : "";
+    $("#ghbody").innerHTML =
+      `<section class="ghcard"><div class="ghstate"><span class="ghdot ${st.configured ? "" : "off"}"></span><span>${st.configured ? "GitHub is ready to connect" : "GitHub setup required"}</span></div><h2>Connect GitHub</h2><p>Authorize Nexora to browse repositories with read-only access. Your App credentials stay in the OS credential manager; they are never shown here.</p>${notice ? `<p class="ghnotice" role="status">${ghe(notice)}</p>` : ""}${st.storage_error ? `<p class="gherr">${ghe(st.storage_error)}</p>` : ""}<div class="ghactions"><button class="b primary" id="ghconnect" ${st.configured ? "" : "disabled"}>${st.configured ? "Connect GitHub" : "Connect GitHub (setup required)"}</button><a class="b" href="/setup#github">Integration settings</a></div>${st.configured ? "" : '<p class="mu">An administrator must first configure a GitHub App. The setup page shows the exact callback and required read-only permissions.</p>'}<p class="mu">No push, commits, issues, or pull requests are requested or created.</p></section>`;
+    const connect = $("#ghconnect");
+    if (connect && !connect.disabled)
+      connect.onclick = () => {
+        connect.disabled = true;
+        connect.textContent = "Opening GitHub…";
+        location.href = "/api/github/connect";
+      };
+    return;
+  }
+  GH.projects = (await api("/api/github/projects")).projects;
+  $("#ghbody").innerHTML =
+    `<p><span class="ghstate"><span class="ghdot"></span>Connected as <b>${ghe(st.login)}</b></span> <a class="b" href="/setup#github">Integration settings</a> <button class="b" id="ghdisconnect">Disconnect GitHub</button></p><div class="ghgrid"><section class="ghcard"><h2>Browse repositories</h2><input id="ghsearch" type="search" placeholder="Search accessible repositories" aria-label="Search accessible repositories"><div id="ghsearchcount" class="hint" aria-live="polite">Filter loaded repositories</div><select id="ghrepo"></select><button class="b" id="ghmore">More repositories</button><select id="ghbranch"></select><button class="b" id="ghtreebtn">Browse branch</button><div id="ghtree" class="ghtree"></div><button class="b primary" id="ghfull">Import full repository</button><button class="b" id="ghselected">Import selected paths</button><div id="ghjob"></div><div id="ghrepoview"></div></section><section class="ghcard"><h2>Imported projects</h2><div id="ghprojects"></div></section></div>`;
+  function renderRepoOptions() {
+    const sel = $("#ghrepo"),
+      q = ($("#ghsearch")?.value || "").trim().toLowerCase(),
+      current = String(sel.value || GH.repo?.id || "");
+    let rows = GH.repos.filter((r) =>
+      String(r.full_name || "")
+        .toLowerCase()
+        .includes(q),
+    );
+    const selected = GH.repos.find((r) => String(r.id) === current);
+    if (selected && !rows.includes(selected)) rows.unshift(selected);
+    sel.innerHTML = rows.length
+      ? rows
+          .map(
+            (r) =>
+              `<option value="${r.id}">${ghe(r.full_name)} ${r.private ? "· private" : ""}</option>`,
+          )
+          .join("")
+      : '<option value="">No matching repositories</option>';
+    if (rows.some((r) => String(r.id) === current)) sel.value = current;
+    $("#ghsearchcount").textContent = q
+      ? `${rows.length} shown · ${GH.repos.length} accessible repositories loaded`
+      : `${GH.repos.length} accessible repositories loaded`;
+  }
+  async function loadRepos(page = 1, append = false) {
+    const d = await api("/api/github/repos?page=" + page);
+    GH.page = page;
+    GH.repos = append ? GH.repos.concat(d.repositories) : d.repositories;
+    renderRepoOptions();
+    $("#ghmore").dataset.next = d.next_page || "";
+    $("#ghmore").disabled = !d.next_page;
+  }
+  $("#ghsearch").addEventListener("input", renderRepoOptions);
+  try {
+    await loadRepos();
+  } catch (e) {
+    $("#ghrepo").innerHTML = `<option>${ghe(e.message)}</option>`;
+  }
+  $("#ghmore").onclick = () => {
+    let n = Number($("#ghmore").dataset.next);
+    if (n) loadRepos(n, true);
+  };
+  $("#ghrepo").onchange = async () => {
+    const r = GH.repos.find((x) => String(x.id) === $("#ghrepo").value);
+    GH.repo = r;
+    GH.paths.clear();
+    if (!r) return;
+    const d = await api(`/api/github/repos/${r.id}/branches`);
+    $("#ghbranch").innerHTML = d.branches
+      .map(
+        (b) =>
+          `<option ${b.name === d.default_branch ? "selected" : ""}>${ghe(b.name)}</option>`,
+      )
+      .join("");
+  };
+  $("#ghtreebtn").onclick = async () => {
+    if (!GH.repo) return;
+    try {
+      const d = await api(
+        `/api/github/repos/${GH.repo.id}/tree?branch=${encodeURIComponent($("#ghbranch").value)}`,
+      );
+      GH.tree = d.tree;
+      $("#ghtree").innerHTML = GH.tree
+        .map(
+          (x) =>
+            `<div class="ghfile"><label><input type="checkbox" data-p="${ghe(x.path)}" ${x.eligible ? "" : "disabled"}><span>${x.type === "tree" ? "📁" : "📄"} ${ghe(x.path)}</span></label><small>${ghe(x.reason || "")}</small>${x.type === "blob" && x.eligible ? `<button data-prev="${ghe(x.path)}">Preview</button>` : ""}</div>`,
+        )
+        .join("");
+      $("#ghtree")
+        .querySelectorAll("[data-p]")
+        .forEach(
+          (c) =>
+            (c.onchange = () =>
+              c.checked
+                ? GH.paths.add(c.dataset.p)
+                : GH.paths.delete(c.dataset.p)),
+        );
+      $("#ghtree")
+        .querySelectorAll("[data-prev]")
+        .forEach(
+          (b) =>
+            (b.onclick = async () => {
+              const x = await api(
+                `/api/github/repos/${GH.repo.id}/preview?branch=${encodeURIComponent($("#ghbranch").value)}&path=${encodeURIComponent(b.dataset.prev)}`,
+              );
+              $("#ghrepoview").innerHTML =
+                `<h3>${ghe(x.path)}</h3><pre>${ghe(x.content)}</pre>`;
+            }),
+        );
+    } catch (e) {
+      $("#ghtree").textContent = e.message;
+    }
+  };
+  $("#ghfull").onclick = () => startImport(null);
+  $("#ghselected").onclick = () => startImport([...GH.paths]);
+  async function startImport(paths) {
+    if (!GH.repo) return alert("Select a repository.");
+    try {
+      const d = await api("/api/github/projects", "POST", {
+        repo_id: GH.repo.id,
+        branch: $("#ghbranch").value,
+        paths,
+      });
+      watch(d.job_id);
+    } catch (e) {
+      alert(e.message);
+    }
+  }
+  $("#ghdisconnect").onclick = async () => {
+    if (!confirm("Revoke and remove local GitHub credentials?")) return;
+    try {
+      const d = await api("/api/github/connection", "DELETE");
+      alert(d.warning || "Disconnected.");
+      githubView();
+    } catch (e) {
+      alert(e.message);
+    }
+  };
+  function drawProjects() {
+    const el = $("#ghprojects");
+    el.innerHTML =
+      GH.projects
+        .map(
+          (p) =>
+            `<div class="ghproject"><b>${ghe(p.owner)}/${ghe(p.name)}<small>${ghe(p.branch)} · ${ghe(p.status)} · ${ghe((p.indexed_revision || "").slice(0, 12))}</small></b><button data-open="${p.id}">Open</button><button data-sync="${p.id}">Sync</button><button data-del="${p.id}">Remove</button></div>`,
+        )
+        .join("") || "<p>No imported projects.</p>";
+    el.querySelectorAll("[data-open]").forEach(
+      (b) => (b.onclick = () => openProject(b.dataset.open)),
+    );
+    el.querySelectorAll("[data-sync]").forEach(
+      (b) =>
+        (b.onclick = async () => {
+          try {
+            watch(
+              (
+                await api(
+                  `/api/github/projects/${b.dataset.sync}/sync`,
+                  "POST",
+                  {},
+                )
+              ).job_id,
+            );
+          } catch (e) {
+            alert(e.message);
+          }
+        }),
+    );
+    el.querySelectorAll("[data-del]").forEach(
+      (b) =>
+        (b.onclick = async () => {
+          if (!confirm("Remove local project data? GitHub is not changed."))
+            return;
+          try {
+            await api("/api/github/projects/" + b.dataset.del, "DELETE");
+            GH.projects = (await api("/api/github/projects")).projects;
+            drawProjects();
+          } catch (e) {
+            alert(e.message);
+          }
+        }),
+    );
+  }
+  async function watch(id) {
+    $("#ghjob").innerHTML =
+      '<progress id="ghprog" max="100" value="0"></progress><span id="ghmsg">Queued</span><button id="ghcancel">Cancel</button>';
+    $("#ghcancel").onclick = () =>
+      api("/api/github/jobs/" + id + "/cancel", "POST", {});
+    GH.timer = setInterval(async () => {
+      try {
+        const j = await api("/api/github/jobs/" + id);
+        $("#ghprog").value = j.progress || 0;
+        $("#ghmsg").textContent =
+          `${j.status} ${j.files_done}/${j.files_total} ${j.current_file || ""} ${j.error || ""}`;
+        if (["completed", "failed", "cancelled"].includes(j.status)) {
+          clearInterval(GH.timer);
+          GH.projects = (await api("/api/github/projects")).projects;
+          drawProjects();
+        }
+      } catch (e) {
+        clearInterval(GH.timer);
+        $("#ghmsg").textContent = e.message;
+      }
+    }, 900);
+  }
+  async function openProject(id) {
+    GH.project = await api("/api/github/projects/" + id);
+    GH.files = GH.project.files || [];
+    GH.conversation = "";
+    GH.messages = [];
+    const el = $("#ghprojects");
+    el.innerHTML = `<button id="ghback">← Projects</button><h3>${ghe(GH.project.owner)}/${ghe(GH.project.name)}</h3><p><a href="${ghe(GH.project.html_url)}" target="_blank" rel="noopener noreferrer">Source repository</a> · ${ghe(GH.project.branch)} · ${ghe(GH.project.indexed_revision)} · ${ghe(GH.project.status)}</p><select id="ghprojectbranch"></select><button id="ghsync">Switch branch &amp; sync</button><div class="ghsplit"><div><h4>Indexed files (${GH.files.length})</h4><div class="ghfilelist">${GH.files.map((f) => `<button data-file="${ghe(f.path)}">${ghe(f.path)} · ${ghe(f.language)}</button>`).join("")}</div><div id="ghsource"></div></div><div><h4>Project chat</h4><select id="ghconv"><option value="">New conversation</option></select><div id="ghmessages" class="ghmessages"></div><textarea id="ghq" rows="3" placeholder="Ask about this branch…"></textarea><button id="ghask" class="b primary">Ask local Ollama</button></div></div>`;
+    $("#ghback").onclick = async () => {
+      GH.projects = (await api("/api/github/projects")).projects;
+      drawProjects();
+    };
+    api(`/api/github/repos/${GH.project.repo_id}/branches`)
+      .then((d) => {
+        $("#ghprojectbranch").innerHTML = d.branches
+          .map(
+            (b) =>
+              `<option ${b.name === GH.project.branch ? "selected" : ""}>${ghe(b.name)}</option>`,
+          )
+          .join("");
+      })
+      .catch(() => {});
+    $("#ghsync").onclick = async () => {
+      try {
+        watch(
+          (
+            await api(`/api/github/projects/${id}/sync`, "POST", {
+              branch: $("#ghprojectbranch").value,
+            })
+          ).job_id,
+        );
+      } catch (e) {
+        alert(e.message);
+      }
+    };
+    el.querySelectorAll("[data-file]").forEach(
+      (b) =>
+        (b.onclick = async () => {
+          const f = await api(
+            `/api/github/projects/${id}/preview?path=${encodeURIComponent(b.dataset.file)}`,
+          );
+          $("#ghsource").innerHTML =
+            `<b>${ghe(f.path)}</b><pre>${ghe(f.content)}</pre>`;
+        }),
+    );
+    const cv = await api(
+      `/api/github/projects/${id}/conversations?branch=${encodeURIComponent(GH.project.branch)}`,
+    );
+    $("#ghconv").innerHTML =
+      '<option value="">New conversation</option>' +
+      cv.conversations
+        .map((c) => `<option value="${c.id}">${ghe(c.title)}</option>`)
+        .join("");
+    $("#ghconv").onchange = async () => {
+      GH.conversation = $("#ghconv").value;
+      GH.messages = GH.conversation
+        ? (
+            await api(
+              `/api/github/projects/${id}/conversations/${GH.conversation}/messages`,
+            )
+          ).messages
+        : [];
+      drawChat();
+    };
+    $("#ghask").onclick = ask;
+  }
+  function drawChat() {
+    const el = $("#ghmessages");
+    el.innerHTML = GH.messages
+      .map(
+        (m) =>
+          `<div class="ghmsg"><b>${m.role === "user" ? "You" : "Assistant"}</b>${m.role === "assistant" ? renderStudioMarkdown(m.content) : `<p>${ghe(m.content)}</p>`}${m.sources?.length ? `<details><summary>Retrieved source passages (${m.sources.length})</summary>${m.sources.map((x) => `<b>${ghe(x.path)}:L${x.line_start}-L${x.line_end}</b><pre>${ghe(x.text)}</pre>`).join("")}</details>` : ""}</div>`,
+      )
+      .join("");
+    el.scrollTop = el.scrollHeight;
+  }
+  async function ask() {
+    const q = $("#ghq").value.trim();
+    if (!q) return;
+    GH.messages.push({ role: "user", content: q });
+    drawChat();
+    $("#ghq").value = "";
+    $("#ghask").disabled = true;
+    try {
+      const d = await api(
+        `/api/github/projects/${GH.project.id}/chat`,
+        "POST",
+        {
+          question: q,
+          model: S.model || "",
+          ctx: S.ctx || 4096,
+          conversation_id: GH.conversation || null,
+          branch: GH.project.branch,
+        },
+      );
+      GH.conversation = d.conversation_id;
+      GH.messages.push({
+        role: "assistant",
+        content: d.answer,
+        sources: d.sources || [],
+      });
+      $("#ghconv").value = GH.conversation;
+    } catch (e) {
+      GH.messages.push({
+        role: "assistant",
+        content: "Request failed: " + e.message,
+      });
+    } finally {
+      $("#ghask").disabled = false;
+      drawChat();
+    }
+  }
+  drawProjects();
+}

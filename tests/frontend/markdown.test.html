@@ -1,0 +1,21 @@
+<!doctype html>
+<meta charset="utf-8"><title>Markdown rendering test</title><pre id="out">pending</pre>
+<script src="../../frontend/assets/vendor/marked.umd.js"></script>
+<script src="../../frontend/assets/vendor/purify.min.js"></script>
+<script src="../../frontend/assets/js/markdown.js"></script>
+<script>
+const render=window.renderStudioMarkdown, checks=[];
+function test(name,ok){checks.push({name,ok:!!ok});}
+let h=render("### Heading\n\n**bold**");
+test("heading and bold",h.includes("<h3")&&h.includes("<strong>bold</strong>"));
+test("table",render("|a|b|\n|-|-|\n|1|2|").includes("<table"));
+test("nested list",render("- outer\n  - inner").includes("<ul"));
+test("fenced code",render("```python\nprint(1)\n```").includes("language-python"));
+const bs=String.fromCharCode(92);
+test("escaped heading repaired",render(bs+"### Heading").includes("<h3"));
+test("Windows path preserved",normalizeStudioMarkdown("C:"+bs+"Users"+bs+"Name")==="C:"+bs+"Users"+bs+"Name");
+test("unsafe HTML stripped",!render("<script>alert(1)</script><img src=x onerror=alert(1)>").includes("<script")&&!render("<img src=x onerror=alert(1)>").includes("onerror"));
+test("unsafe URL removed",!render("[x](javascript:alert(1))").includes("javascript:"));
+test("partial token renderable",typeof render("**unfinished")==="string");
+document.getElementById("out").textContent=JSON.stringify(checks);
+</script>

@@ -1,0 +1,126 @@
+[
+  {
+    "method": "GET",
+    "path": "/api/settings"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/settings"
+  },
+  {
+    "method": "POST",
+    "path": "/api/settings/test-connection"
+  },
+  {
+    "method": "GET",
+    "path": "/api/chats"
+  },
+  {
+    "method": "POST",
+    "path": "/api/chats"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/chats/{i}"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/chats/{i}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/chats/{i}/messages"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/chats/{i}/last"
+  },
+  {
+    "method": "POST",
+    "path": "/api/projects"
+  },
+  {
+    "method": "GET",
+    "path": "/api/models"
+  },
+  {
+    "method": "POST",
+    "path": "/api/test"
+  },
+  {
+    "method": "POST",
+    "path": "/api/chats/{cid}/send"
+  },
+  {
+    "method": "GET",
+    "path": "/api/metrics"
+  },
+  {
+    "method": "GET",
+    "path": "/api/processes"
+  },
+  {
+    "method": "GET",
+    "path": "/"
+  },
+  {
+    "method": "GET",
+    "path": "/api/kb/collections"
+  },
+  {
+    "method": "POST",
+    "path": "/api/kb/collections"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/kb/collections/{i}"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/kb/collections/{i}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/kb/collections/{i}/export"
+  },
+  {
+    "method": "GET",
+    "path": "/api/kb/sources"
+  },
+  {
+    "method": "POST",
+    "path": "/api/kb/sources"
+  },
+  {
+    "method": "GET",
+    "path": "/api/kb/sources/{sid}"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/kb/sources/{sid}"
+  },
+  {
+    "method": "POST",
+    "path": "/api/kb/sources/{sid}/reindex"
+  },
+  {
+    "method": "GET",
+    "path": "/api/kb/sources/{sid}/pages/{n}"
+  },
+  {
+    "method": "GET",
+    "path": "/api/kb/sources/{sid}/pages/{n}/image"
+  },
+  {
+    "method": "POST",
+    "path": "/api/kb/sources/{sid}/pages/{n}/retry"
+  },
+  {
+    "method": "GET",
+    "path": "/api/kb/sources/{sid}/export"
+  },
+  {
+    "method": "GET",
+    "path": "/api/kb/search"
+  }
+]

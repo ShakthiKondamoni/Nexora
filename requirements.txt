@@ -1,0 +1,19 @@
+# Same eight direct dependencies as the original application, pinned to the verified runtime.
+# Starlette is constrained below for reproducible FastAPI/TestClient behavior.
+-c constraints.txt
+fastapi==0.115.12
+uvicorn==0.54.0
+python-multipart==0.0.32
+requests==2.34.2
+psutil==7.0.0
+PyMuPDF==1.26.7
+pytest==9.1.1
+httpx==0.28.1
+python-docx>=1.1,<2
+
+# OS credential storage for GitHub App secrets/tokens
+keyring==25.7.0
+
+# Argon2id local account password hashing and server-verified Google OIDC
+argon2-cffi>=23.1,<26
+google-auth>=2.40,<3

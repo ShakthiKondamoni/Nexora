@@ -1,0 +1,6 @@
+{
+  "provider": "searxng",
+  "instance_url": "http://localhost:8080",
+  "default_result_count": 5,
+  "timeout_seconds": 12
+}

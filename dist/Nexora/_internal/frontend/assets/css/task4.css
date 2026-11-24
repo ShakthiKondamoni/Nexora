@@ -1,0 +1,445 @@
+/* Task 4 theme tokens and settings surfaces. All theme-aware surfaces consume the same variables. */
+:root {
+  --bg: #101114;
+  --s1: #181a1f;
+  --s2: #22252b;
+  --bd: #30343d;
+  --tx: #eef0f4;
+  --mu: #a1a6b0;
+  --ac: #8b83ff;
+  --pu: #b39cff;
+  --rd: #f87171;
+  --ok: #34d399;
+  color-scheme: dark;
+}
+:root[data-resolved-theme="dark"] {
+  color-scheme: dark;
+}
+:root[data-resolved-theme="light"] {
+  --bg: #f5f6f8;
+  --s1: #ffffff;
+  --s2: #f0f2f5;
+  --bd: #d9dde4;
+  --tx: #20232a;
+  --mu: #68707e;
+  --ac: #6154d9;
+  --pu: #7656bd;
+  --rd: #b42332;
+  --ok: #16824a;
+  color-scheme: light;
+}
+body,
+#app,
+#main {
+  background: var(--bg);
+  color: var(--tx);
+}
+aside {
+  background: var(--s1);
+  border-color: var(--bd);
+}
+button,
+input,
+textarea,
+select {
+  color: var(--tx);
+}
+input,
+textarea,
+select {
+  background: var(--s2);
+  border: 1px solid var(--bd);
+  border-radius: 9px;
+}
+button {
+  border-radius: 9px;
+  transition:
+    background 0.16s ease,
+    border-color 0.16s ease,
+    transform 0.16s ease;
+}
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--ac);
+  outline-offset: 2px;
+}
+.card,
+.ghcard,
+.app-card,
+.theme-choice,
+#menu,
+#amenu {
+  background: var(--s1);
+  color: var(--tx);
+  border-color: var(--bd);
+}
+#menu button:hover,
+#amenu .ai:hover:not(.dis) {
+  background: var(--s2);
+}
+#menu,
+#amenu {
+  box-shadow: 0 12px 32px #0004;
+}
+#modal {
+  background: #0009;
+}
+pre,
+.ghmsg pre,
+.ghcard pre {
+  background: var(--s2) !important;
+  color: var(--tx) !important;
+  border: 1px solid var(--bd);
+  border-radius: 10px;
+}
+code {
+  background: color-mix(in srgb, var(--s2) 82%, var(--ac) 18%);
+  color: var(--tx);
+}
+.send {
+  background: var(--ac) !important;
+  color: #fff !important;
+}
+.pcard {
+  background: linear-gradient(
+    155deg,
+    color-mix(in srgb, var(--ac) 28%, var(--s1)),
+    var(--s1)
+  );
+  border-color: var(--bd);
+}
+.fld .err,
+.m.err,
+#ban {
+  color: var(--rd);
+}
+.fld select:hover,
+.fld input:hover {
+  border-color: var(--ac);
+}
+:root[data-resolved-theme="light"] .ghnotice {
+  background: #fff8e7;
+  color: #6f5112;
+  border-color: #e8ce8d;
+}
+:root[data-resolved-theme="light"] .gherr {
+  color: #a2222b;
+}
+.settings-tabs {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin: 18px 0 14px;
+  padding: 4px;
+  border: 1px solid var(--bd);
+  background: var(--s1);
+  border-radius: 12px;
+  width: max-content;
+  max-width: 100%;
+}
+.settings-tabs button {
+  border: 0;
+  background: transparent;
+  color: var(--mu);
+  padding: 8px 13px;
+  font-weight: 600;
+}
+.settings-tabs button:hover {
+  background: var(--s2);
+  color: var(--tx);
+}
+.settings-tabs button.active {
+  background: var(--s2);
+  color: var(--tx);
+  box-shadow: inset 0 0 0 1px var(--bd);
+}
+.app-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 14px;
+  margin: 18px 0;
+}
+.app-card {
+  border: 1px solid var(--bd);
+  border-radius: 16px;
+  padding: 20px;
+  min-width: 0;
+  box-shadow: 0 8px 28px #0000000d;
+}
+.app-card-head {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin-bottom: 12px;
+}
+.app-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--bd);
+  border-radius: 13px;
+  background: var(--s2);
+  font-size: 20px;
+  font-weight: 750;
+  flex: none;
+}
+.app-icon svg {
+  width: 22px;
+  height: 22px;
+}
+.google-icon {
+  color: #4285f4;
+  font-family: Arial, sans-serif;
+  font-size: 25px;
+}
+.email-icon {
+  color: var(--pu);
+}
+.app-title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  justify-content: space-between;
+  flex: 1;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+.app-title h2 {
+  font-size: 17px;
+  margin: 0;
+}
+.app-card p {
+  color: var(--mu);
+  margin: 6px 0 12px;
+}
+.app-card p:first-of-type {
+  color: var(--tx);
+}
+.app-detail {
+  font-size: 13px;
+  min-height: 38px;
+}
+.app-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--bd);
+  border-radius: 999px;
+  padding: 4px 9px;
+  color: var(--mu);
+  font-size: 12px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+.app-status i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #9ca3af;
+}
+.app-status.connected i {
+  background: var(--ok);
+}
+.app-status.off i {
+  background: #9ca3af;
+}
+.app-status.setup i,
+.app-status.unknown i {
+  background: #f0ad4e;
+}
+.app-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 14px;
+}
+.app-actions .btn {
+  min-height: 38px;
+}
+.app-actions .primary {
+  background: var(--ac);
+  border-color: var(--ac);
+  color: #fff;
+}
+.app-actions .danger {
+  color: var(--rd);
+  border-color: color-mix(in srgb, var(--rd) 50%, var(--bd));
+}
+.app-security {
+  margin-top: 18px;
+}
+.settings-notice {
+  padding: 12px 14px;
+  border-radius: 11px;
+  border: 1px solid var(--bd);
+  margin: 12px 0;
+  background: var(--s2);
+}
+.settings-notice.success {
+  border-color: color-mix(in srgb, var(--ok) 60%, var(--bd));
+  color: var(--ok);
+}
+.settings-notice.error {
+  border-color: color-mix(in srgb, var(--rd) 60%, var(--bd));
+  color: var(--rd);
+}
+.loading-card {
+  color: var(--mu);
+  min-height: 110px;
+  display: grid;
+  place-items: center;
+}
+.appearance-card {
+  max-width: 760px;
+  border: 1px solid var(--bd);
+  border-radius: 16px;
+  padding: 22px;
+}
+.theme-picker {
+  border: 0;
+  padding: 0;
+  margin: 18px 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.theme-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border: 1px solid var(--bd);
+  border-radius: 14px;
+  padding: 13px;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.theme-choice:hover {
+  transform: translateY(-1px);
+  border-color: var(--ac);
+}
+.theme-choice:has(input:checked) {
+  border-color: var(--ac);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ac) 20%, transparent);
+}
+.theme-choice input {
+  accent-color: var(--ac);
+  margin: 0;
+  width: 17px;
+  height: 17px;
+}
+.theme-preview {
+  height: 72px;
+  border: 1px solid var(--bd);
+  border-radius: 9px;
+  display: flex;
+  gap: 7px;
+  padding: 8px;
+  overflow: hidden;
+}
+.theme-preview i:first-child {
+  width: 24%;
+  border-radius: 5px;
+  background: #272a32;
+}
+.theme-preview i:last-child {
+  flex: 1;
+  border-radius: 5px;
+  background: #40434c;
+}
+.light-preview {
+  background: #f3f4f7;
+}
+.light-preview i:first-child {
+  background: #fff;
+  border: 1px solid #d8dce4;
+}
+.light-preview i:last-child {
+  background: #e5e8ee;
+}
+.dark-preview {
+  background: #101114;
+}
+.dark-preview i:first-child {
+  background: #1b1d23;
+}
+.dark-preview i:last-child {
+  background: #292c34;
+}
+.system-preview {
+  background: linear-gradient(90deg, #f1f2f5 0 50%, #141519 50%);
+}
+.system-preview i:first-child {
+  background: linear-gradient(90deg, #fff 0 50%, #252830 50%);
+}
+.system-preview i:last-child {
+  background: linear-gradient(90deg, #e1e4e9 0 50%, #393c45 50%);
+}
+.theme-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.theme-copy strong {
+  font-size: 14px;
+}
+.theme-copy small {
+  color: var(--mu);
+  font-size: 12px;
+}
+.sr-only {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+#ghsearch {
+  width: min(100%, 360px);
+  padding: 9px 11px;
+  margin: 0 8px 8px 0;
+}
+#ghsearchcount {
+  margin: -2px 0 8px;
+}
+@media (max-width: 720px) {
+  .settings-tabs {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .settings-tabs button {
+    padding: 8px 9px;
+  }
+  .theme-picker {
+    grid-template-columns: 1fr;
+  }
+  .theme-choice {
+    display: grid;
+    grid-template-columns: 18px 82px 1fr;
+    align-items: center;
+  }
+  .theme-preview {
+    height: 48px;
+  }
+  .app-title {
+    align-items: flex-start;
+  }
+  .app-actions .btn {
+    flex: 1;
+  }
+}

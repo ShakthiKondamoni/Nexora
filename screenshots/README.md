@@ -1,0 +1,1 @@
+Chromium-rendered interface previews built from the delivered Task 6 styles. These are not captures of a live backend, Ollama session, or compiled desktop window. The desktop-shell image shows the bundled startup screen.

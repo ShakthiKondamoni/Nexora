@@ -1,0 +1,1 @@
+document.addEventListener('click',e=>{const a=e.target.closest('a[href]');if(!a)return;let u;try{u=new URL(a.href,location.href)}catch{return}if(!['http:','https:'].includes(u.protocol))return;if(window.pywebview?.api?.open_external){e.preventDefault();window.pywebview.api.open_external(u.href)}});

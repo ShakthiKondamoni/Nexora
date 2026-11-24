@@ -1,0 +1,3 @@
+# Optional Windows desktop shell and packager.
+pywebview>=5,<7
+pyinstaller>=6,<7
